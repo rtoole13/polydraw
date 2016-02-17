@@ -1,0 +1,205 @@
+<html>
+<canvas id ="gameCanvas" width="800"
+height ="600"></canvas>
+<script>
+var canvas,
+ctx,
+outerR = 100,
+innerR = 80,
+vertices = 6,
+
+gridOn = false,
+x,
+y,
+sectors,
+xPoints = [],
+yPoints = [],
+gridXs = [],
+mousePos = {},
+gridYs = [];
+
+
+
+window.onload = function(){
+
+canvas = document.getElementById('gameCanvas');
+ctx = canvas.getContext('2d');
+
+x = canvas.width/2;
+y = canvas.height/2;
+
+colorRect(0,0,canvas.width,canvas.height,'black');
+drawPolygon(vertices,outerR,innerR, x, y,'#ffffff');
+
+setInterval(function() {
+			inside = checkCollision(xPoints, yPoints,mousePos);
+			draw(xPoints, yPoints, inside); 
+			//drawPolygon(vertices,outerR,innerR, x, y,'#ffffff');
+			}, 1000/30);
+
+window.addEventListener('keydown', function(event){			
+	switch (event.keyCode) {
+		case 71: //grid
+			if(gridOn == false){
+				gridOn = true;
+			}
+			else{
+				gridOn = false;
+			}
+			console.log(gridOn);
+			break;
+	}
+
+	},false);
+}
+window.addEventListener('mousemove', function(evt) {
+        mousePos = getMousePos(canvas, evt);
+      }, false);
+function getMousePos(canvas, evt){
+	var rect = canvas.getBoundingClientRect();
+        return {
+          x: evt.clientX - rect.left,
+          y: evt.clientY - rect.top
+        };
+}
+
+function checkCollision(xPoints, yPoints, mousePos){
+	var len = xPoints.length;
+	var inside = false;
+	for (var i = 0, j = len-1; i < len; j = i++){
+		var xi = xPoints[i], yi = yPoints[i];
+        var xj = xPoints[j], yj = yPoints[j];
+        
+        var intersect = ((yi > mousePos.y) != (yj > mousePos.y))
+            && (mousePos.x < (xj - xi) * (mousePos.y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+		
+    }
+	return inside;
+	
+}
+
+function colorRect(x,y,width,height, drawColor) {
+	ctx.fillStyle = drawColor;
+	ctx.fillRect(x,y,width,height);
+}
+
+function draw(xPoints, yPoints, inside){
+	colorRect(0, 0, canvas.width, canvas.height, 'black');
+	rotate(xPoints, yPoints, 0.01);
+	rotate(gridXs, gridYs, 0.01);
+	if (inside){
+		color = 'red';
+	}
+	else{
+	 color = 'white';
+	}
+	updatePolygon(color);
+}
+
+function drawPolygon(vertices,outerR,innerR, x, y, color){
+	colorRect(0,0,canvas.width,canvas.height,'black');
+	var angleStep = 2 * Math.PI / vertices;
+	sectors = [];
+	
+	xPoints = [];
+	yPoints = [];
+	for(var i=0; i < (vertices); i ++) {
+			var initAngle = i * angleStep;
+			
+			sectors.push(initAngle);	
+	}
+	
+	for(var i=0; i < (vertices); i ++) {
+			var theta =  sectors[i] + Math.random() * angleStep;
+			var rho = innerR + Math.random() * (outerR - innerR);
+			var vertX = x + Math.floor(rho * Math.cos(theta));
+			var vertY = y + Math.floor(rho * Math.sin(theta));
+			
+			xPoints.push(vertX);
+			yPoints.push(vertY);
+			
+			var gridX = x + outerR*Math.cos(sectors[i]);
+			var gridY = y + outerR*Math.sin(sectors[i]);
+			gridXs.push(gridX);
+			gridYs.push(gridY);
+	}
+	
+	xPoints.push(xPoints[0]);
+	yPoints.push(yPoints[0]);
+	
+	ctx.strokeStyle = color;
+	ctx.beginPath();
+	for(var i=0; i <= xPoints.length; i ++) {
+			
+		if (i == 0){
+		ctx.moveTo(xPoints[i],yPoints[i]);
+		}
+		else {
+		ctx.lineTo(xPoints[i],yPoints[i]);
+		}
+		
+		ctx.stroke();
+	}
+	
+	
+}
+function drawWheel(){
+	ctx.strokeStyle = 'gray';
+	ctx.beginPath();
+	for(var i=0; i <= gridXs.length; i ++) {
+		ctx.moveTo(x,y);
+		ctx.lineWidth = 1;
+		ctx.lineTo(gridXs[i],gridYs[i]);
+		ctx.stroke();
+	}
+	ctx.beginPath();
+	ctx.arc(x, y, outerR, 0, 2*Math.PI);
+	ctx.stroke();
+	
+	ctx.beginPath();
+	ctx.arc(x, y, innerR, 0, 2*Math.PI);
+	ctx.stroke();
+}
+function rotate(xs, ys, theta){
+
+	var mx = [ Math.cos(theta), -Math.sin(theta), 
+	Math.sin(theta), Math.cos(theta)];
+	
+	for (var i = 0; i < xs.length; i ++) {
+		var _x = xs[i] - x;
+		var _y = ys[i] - y;
+		
+		xs[i] = x + _x * mx[0] + _y * mx[1];
+		ys[i] = y + _x * mx[2] + _y * mx[3];
+		
+			
+	}
+}
+
+function updatePolygon(color){
+	
+	ctx.save();
+	
+	ctx.strokeStyle = color;
+	ctx.beginPath();
+	for (var i = 0; i < xPoints.length; i ++) {
+		if (i == 0) {
+			ctx.moveTo(xPoints[i], yPoints[i]);
+		}
+		else {
+			ctx.lineTo(xPoints[i], yPoints[i]);
+		}
+	}
+	ctx.stroke();
+	ctx.restore();
+	if(gridOn == true){
+		drawWheel();
+	}
+}
+function wipe(){
+
+	
+}
+</script>
+</html>
