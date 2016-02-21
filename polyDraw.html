@@ -9,14 +9,9 @@ innerR = 80,
 vertices = 6,
 
 gridOn = false,
-x,
-y,
 sectors,
-xPoints = [],
-yPoints = [],
-gridXs = [],
-mousePos = {},
-gridYs = [];
+asteroids = [],
+mousePos = {};
 
 
 
@@ -25,16 +20,14 @@ window.onload = function(){
 canvas = document.getElementById('gameCanvas');
 ctx = canvas.getContext('2d');
 
-x = canvas.width/2;
-y = canvas.height/2;
-
 colorRect(0,0,canvas.width,canvas.height,'black');
-drawPolygon(vertices,outerR,innerR, x, y,'#ffffff');
-
+var asteroidOne = new asteroid(vertices,outerR,innerR, canvas.width/2, canvas.height/2,'#ffffff');
+asteroids.push(asteroidOne);
+var asteroidTwo = new asteroid(vertices,outerR,innerR, 200, 200,'#ffffff');
+asteroids.push(asteroidTwo);
 setInterval(function() {
-			inside = checkCollision(xPoints, yPoints,mousePos);
-			draw(xPoints, yPoints, inside); 
-			//drawPolygon(vertices,outerR,innerR, x, y,'#ffffff');
+			checkCollision(asteroids, mousePos);
+			draw(asteroids); 
 			}, 1000/30);
 
 window.addEventListener('keydown', function(event){			
@@ -63,20 +56,21 @@ function getMousePos(canvas, evt){
         };
 }
 
-function checkCollision(xPoints, yPoints, mousePos){
-	var len = xPoints.length;
-	var inside = false;
-	for (var i = 0, j = len-1; i < len; j = i++){
-		var xi = xPoints[i], yi = yPoints[i];
-        var xj = xPoints[j], yj = yPoints[j];
+function checkCollision(asteroids, mousePos){
+	for (var k = 0; k < asteroids.length; k++){
+		var len = asteroids[k].xPoints.length;
+		var inside = false;
+		for (var i = 0, j = len-1; i < len; j = i++){
+			var xi = asteroids[k].xPoints[i], yi = asteroids[k].yPoints[i];
+			var xj = asteroids[k].xPoints[j], yj = asteroids[k].yPoints[j];
         
-        var intersect = ((yi > mousePos.y) != (yj > mousePos.y))
-            && (mousePos.x < (xj - xi) * (mousePos.y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
+			var intersect = ((yi > mousePos.y) != (yj > mousePos.y))
+				&& (mousePos.x < (xj - xi) * (mousePos.y - yi) / (yj - yi) + xi);
+			if (intersect) inside = !inside;
 		
-    }
-	return inside;
-	
+		}
+		asteroids[k].inside = inside;
+	}
 }
 
 function colorRect(x,y,width,height, drawColor) {
@@ -84,26 +78,34 @@ function colorRect(x,y,width,height, drawColor) {
 	ctx.fillRect(x,y,width,height);
 }
 
-function draw(xPoints, yPoints, inside){
+function draw(asteroids){
 	colorRect(0, 0, canvas.width, canvas.height, 'black');
-	rotate(xPoints, yPoints, 0.01);
-	rotate(gridXs, gridYs, 0.01);
-	if (inside){
-		color = 'red';
+	for (var i = 0; i < asteroids.length; i++){
+		rotate(asteroids[i].xPoints, asteroids[i].yPoints, asteroids[i].x, asteroids[i].y, 0.01);
+		rotate(asteroids[i].gridXs, asteroids[i].gridYs, asteroids[i].x, asteroids[i].y, 0.01);
+		if (asteroids[i].inside){
+			color = 'red';
+		}
+		else{
+			color = 'white';
+		}
+		updatePolygon(asteroids[i], color);
 	}
-	else{
-	 color = 'white';
-	}
-	updatePolygon(color);
 }
 
-function drawPolygon(vertices,outerR,innerR, x, y, color){
-	colorRect(0,0,canvas.width,canvas.height,'black');
+function asteroid(vertices,outerR,innerR, x, y, color){
 	var angleStep = 2 * Math.PI / vertices;
 	sectors = [];
 	
-	xPoints = [];
-	yPoints = [];
+	this.x = x;
+	this.y = y;
+	this.xPoints = [];
+	this.yPoints = [];
+	this.gridXs = [];
+	this.gridYs = [];
+	this.inside = false;
+	this.inside = false;
+	
 	for(var i=0; i < (vertices); i ++) {
 			var initAngle = i * angleStep;
 			
@@ -113,30 +115,30 @@ function drawPolygon(vertices,outerR,innerR, x, y, color){
 	for(var i=0; i < (vertices); i ++) {
 			var theta =  sectors[i] + Math.random() * angleStep;
 			var rho = innerR + Math.random() * (outerR - innerR);
-			var vertX = x + Math.floor(rho * Math.cos(theta));
-			var vertY = y + Math.floor(rho * Math.sin(theta));
+			var vertX = this.x + Math.floor(rho * Math.cos(theta));
+			var vertY = this.y + Math.floor(rho * Math.sin(theta));
 			
-			xPoints.push(vertX);
-			yPoints.push(vertY);
+			this.xPoints.push(vertX);
+			this.yPoints.push(vertY);
 			
-			var gridX = x + outerR*Math.cos(sectors[i]);
-			var gridY = y + outerR*Math.sin(sectors[i]);
-			gridXs.push(gridX);
-			gridYs.push(gridY);
+			var gridX = this.x + outerR*Math.cos(sectors[i]);
+			var gridY = this.y + outerR*Math.sin(sectors[i]);
+			this.gridXs.push(gridX);
+			this.gridYs.push(gridY);
 	}
 	
-	xPoints.push(xPoints[0]);
-	yPoints.push(yPoints[0]);
+	this.xPoints.push(this.xPoints[0]);
+	this.yPoints.push(this.yPoints[0]);
 	
 	ctx.strokeStyle = color;
 	ctx.beginPath();
-	for(var i=0; i <= xPoints.length; i ++) {
+	for(var i=0; i <= this.xPoints.length; i ++) {
 			
 		if (i == 0){
-		ctx.moveTo(xPoints[i],yPoints[i]);
+		ctx.moveTo(this.xPoints[i],this.yPoints[i]);
 		}
 		else {
-		ctx.lineTo(xPoints[i],yPoints[i]);
+		ctx.lineTo(this.xPoints[i],this.yPoints[i]);
 		}
 		
 		ctx.stroke();
@@ -144,24 +146,24 @@ function drawPolygon(vertices,outerR,innerR, x, y, color){
 	
 	
 }
-function drawWheel(){
+function drawWheel(asteroid){
 	ctx.strokeStyle = 'gray';
 	ctx.beginPath();
-	for(var i=0; i <= gridXs.length; i ++) {
-		ctx.moveTo(x,y);
+	for(var i=0; i <= asteroid.gridXs.length; i ++) {
+		ctx.moveTo(asteroid.x,asteroid.y);
 		ctx.lineWidth = 1;
-		ctx.lineTo(gridXs[i],gridYs[i]);
+		ctx.lineTo(asteroid.gridXs[i],asteroid.gridYs[i]);
 		ctx.stroke();
 	}
 	ctx.beginPath();
-	ctx.arc(x, y, outerR, 0, 2*Math.PI);
+	ctx.arc(asteroid.x, asteroid.y, outerR, 0, 2*Math.PI);
 	ctx.stroke();
 	
 	ctx.beginPath();
-	ctx.arc(x, y, innerR, 0, 2*Math.PI);
+	ctx.arc(asteroid.x, asteroid.y, innerR, 0, 2*Math.PI);
 	ctx.stroke();
 }
-function rotate(xs, ys, theta){
+function rotate(xs, ys, x, y, theta){
 
 	var mx = [ Math.cos(theta), -Math.sin(theta), 
 	Math.sin(theta), Math.cos(theta)];
@@ -177,24 +179,24 @@ function rotate(xs, ys, theta){
 	}
 }
 
-function updatePolygon(color){
+function updatePolygon(asteroid, color){
 	
 	ctx.save();
 	
 	ctx.strokeStyle = color;
 	ctx.beginPath();
-	for (var i = 0; i < xPoints.length; i ++) {
+	for (var i = 0; i < asteroid.xPoints.length; i ++) {
 		if (i == 0) {
-			ctx.moveTo(xPoints[i], yPoints[i]);
+			ctx.moveTo(asteroid.xPoints[i], asteroid.yPoints[i]);
 		}
 		else {
-			ctx.lineTo(xPoints[i], yPoints[i]);
+			ctx.lineTo(asteroid.xPoints[i], asteroid.yPoints[i]);
 		}
 	}
 	ctx.stroke();
 	ctx.restore();
 	if(gridOn == true){
-		drawWheel();
+		drawWheel(asteroid);
 	}
 }
 function wipe(){
